@@ -235,6 +235,7 @@ class Train(BaseModel):
 class ConfirmTrainModel(BaseModel):
     selected_train: str = Field(..., alias='TrainQueryDataViewPanel:TrainGroup')
     form_mark: str = Field('', alias='BookingS2Form:hf:0')
+    train_id: str = Field('', alias='')
 
 
 class ConfirmTicketModel(BaseModel):

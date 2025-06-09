@@ -5,7 +5,7 @@ from tinydb import TinyDB, Query
 from tinydb.database import Document
 
 from thsr_ticket import MODULE_PATH
-from thsr_ticket.configs.web.param_schema import BookingModel, ConfirmTicketModel
+from thsr_ticket.configs.web.param_schema import BookingModel, ConfirmTrainModel, ConfirmTicketModel
 
 
 class Record(NamedTuple):
@@ -18,6 +18,8 @@ class Record(NamedTuple):
     dest_station: int = None
     outbound_time: str = None
     adult_num: str = None
+    date: str = None
+    train: str = None
 
 
 class ParamDB:
@@ -29,7 +31,7 @@ class ParamDB:
         if not os.path.exists(db_dir):
             os.makedirs(db_dir)
 
-    def save(self, book_model: BookingModel, ticket: ConfirmTicketModel) -> None:
+    def save(self, book_model: BookingModel, train_model: ConfirmTrainModel, ticket: ConfirmTicketModel) -> None:
         data = Record(
             ticket.personal_id,
             ticket.phone_num,
@@ -39,7 +41,9 @@ class ParamDB:
             book_model.start_station,
             book_model.dest_station,
             book_model.outbound_time,
-            book_model.adult_ticket_num
+            book_model.adult_ticket_num,
+            book_model.outbound_date,
+            train_model.train_id
         )._asdict()  # type: ignore
         with TinyDB(self.db_path, sort_keys=True, indent=4) as db:
             hist = db.search(Query().personal_id == ticket.personal_id)

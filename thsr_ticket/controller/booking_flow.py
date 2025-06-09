@@ -13,10 +13,11 @@ from thsr_ticket.remote.http_request import HTTPRequest
 
 
 class BookingFlow:
-    def __init__(self) -> None:
+    def __init__(self, db_path: str = None) -> None:
         self.client = HTTPRequest()
-        self.db = ParamDB()
+        self.db = ParamDB(db_path)
         self.record = Record()
+        self.config = True if db_path else False
 
         self.error_feedback = ErrorFeedback()
         self.show_error_msg = ShowErrorMsg()
@@ -25,12 +26,12 @@ class BookingFlow:
         self.show_history()
 
         # First page. Booking options
-        book_resp, book_model = FirstPageFlow(client=self.client, record=self.record).run()
+        book_resp, book_model = FirstPageFlow(self.client, self.record, self.config).run()
         if self.show_error(book_resp.content):
             return book_resp
 
         # Second page. Train confirmation
-        train_resp, train_model = ConfirmTrainFlow(self.client, book_resp).run()
+        train_resp, train_model = ConfirmTrainFlow(self.client, book_resp, self.record).run()
         if self.show_error(train_resp.content):
             return train_resp
 
@@ -45,7 +46,7 @@ class BookingFlow:
         book.show(result_model)
         print("\n請使用官方提供的管道完成後續付款以及取票!!")
 
-        self.db.save(book_model, ticket_model)
+        self.db.save(book_model, train_model, ticket_model)
         return ticket_resp
 
     def show_history(self) -> None:
