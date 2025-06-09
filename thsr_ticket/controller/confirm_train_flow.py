@@ -2,7 +2,7 @@ import json
 from typing import List, Tuple
 
 from requests.models import Response
-
+from thsr_ticket.model.db import Record
 from thsr_ticket.remote.http_request import HTTPRequest
 from thsr_ticket.view_model.avail_trains import AvailTrains
 from thsr_ticket.configs.web.param_schema import Train, ConfirmTrainModel
@@ -10,9 +10,11 @@ from thsr_ticket.configs.web.param_schema import Train, ConfirmTrainModel
 
 
 class ConfirmTrainFlow:
-    def __init__(self, client: HTTPRequest, book_resp: Response):
+    def __init__(self, client: HTTPRequest, book_resp: Response, record: Record = None):
         self.client = client
         self.book_resp = book_resp
+        self.record = record
+        self.train_id = ''
 
     def run(self) -> Tuple[Response, ConfirmTrainModel]:
         trains = AvailTrains().parse(self.book_resp.content)
@@ -21,6 +23,7 @@ class ConfirmTrainFlow:
 
         confirm_model = ConfirmTrainModel(
             selected_train=self.select_available_trains(trains),
+            train_id = self.train_id,
         )
         json_params = confirm_model.json(by_alias=True)
         dict_params = json.loads(json_params)
@@ -28,10 +31,15 @@ class ConfirmTrainFlow:
         return resp, confirm_model
 
     def select_available_trains(self, trains: List[Train], default_value: int = 1) -> Train:
+        if self.record and (form_value := next((train.form_value for train in trains if str(train.id) == self.record.train), None)):
+            self.train_id = self.record.train
+            return form_value
+        
         for idx, train in enumerate(trains, 1):
             print(
                 f'{idx}. {train.id:>4} {train.depart:>3}~{train.arrive} {train.travel_time:>3} '
                 f'{train.discount_str}'
             )
         selection = int(input(f'輸入選擇（預設：{default_value}）：') or default_value)
+        self.train_id = trains[selection-1].id
         return trains[selection-1].form_value

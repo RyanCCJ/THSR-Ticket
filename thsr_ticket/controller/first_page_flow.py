@@ -20,9 +20,10 @@ from thsr_ticket.configs.common import (
 
 
 class FirstPageFlow:
-    def __init__(self, client: HTTPRequest, record: Record = None) -> None:
+    def __init__(self, client: HTTPRequest, record: Record = None, config: bool = False) -> None:
         self.client = client
         self.record = record
+        self.config = config
 
     def run(self) -> Tuple[Response, BookingModel]:
         # First page. Booking options
@@ -69,12 +70,22 @@ class FirstPageFlow:
         )
 
     def select_date(self, date_type: str) -> str:
+        if self.config and self.record and (date_str := self.record.date):
+            return date_str
+        
         today = date.today()
-        last_avail_date = today + timedelta(days=DAYS_BEFORE_BOOKING_AVAILABLE)
+        weekday = today.strftime('%A')
+        if weekday == 'Friday':
+            shift = 2
+        elif weekday == 'Saturday':
+            shift = 1
+        else:
+            shift = 0
+        last_avail_date = today + timedelta(days=DAYS_BEFORE_BOOKING_AVAILABLE+shift)
         print(f'選擇{date_type}日期（{today}~{last_avail_date}）（預設為今日）：')
         return input() or str(today)
 
-    def select_time(self, time_type: str, default_value: int = 10) -> str:
+    def select_time(self, time_type: str, default_value: int = 17) -> str:
         if self.record and (
             time_str := {
                 '啟程': self.record.outbound_time,

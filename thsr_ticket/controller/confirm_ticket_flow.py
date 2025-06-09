@@ -69,6 +69,11 @@ class ConfirmTicketFlow:
                 'name': 'TicketMemberSystemInputPanel:TakerMemberSystemDataView:memberSystemRadioGroup'
             },
         )
+        if candidates is None:
+            return ''
+        if self.record and (member_radio := self.record.member_radio):
+            self.member_radio = member_radio
+            return self.member_radio
         print('選擇高鐵會員資訊：')
         print('1. 非高鐵會員 TGo／企業會員')
         print('2. 高鐵會員 TGo 帳號')
