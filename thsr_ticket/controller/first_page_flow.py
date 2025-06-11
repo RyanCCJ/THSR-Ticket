@@ -7,6 +7,9 @@ from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from requests.models import Response
 
+from thsr_ticket.view_model.error_feedback import ErrorFeedback
+from thsr_ticket.ml.captcha import preprocess, predict
+
 from thsr_ticket.model.db import Record
 from thsr_ticket.remote.http_request import HTTPRequest
 from thsr_ticket.configs.web.param_schema import BookingModel
@@ -20,10 +23,11 @@ from thsr_ticket.configs.common import (
 
 
 class FirstPageFlow:
-    def __init__(self, client: HTTPRequest, record: Record = None, config: bool = False) -> None:
+    def __init__(self, client: HTTPRequest, record: Record = None, config: bool = False, OCR: bool = False) -> None:
         self.client = client
         self.record = record
         self.config = config
+        self.OCR = OCR
 
     def run(self) -> Tuple[Response, BookingModel]:
         # First page. Booking options
@@ -41,7 +45,7 @@ class FirstPageFlow:
             seat_prefer=_parse_seat_prefer_value(page),
             types_of_trip=_parse_types_of_trip_value(page),
             search_by=_parse_search_by(page),
-            security_code=_input_security_code(img_resp),
+            security_code=_input_security_code(img_resp, self.OCR),
         )
         json_params = book_model.json(by_alias=True)
         dict_params = json.loads(json_params)
@@ -130,6 +134,12 @@ class FirstPageFlow:
         print(f'選擇{ticket_type_name}票數（0~{MAX_TICKET_NUM}）（預設：{default_ticket_num}）')
         ticket_num = int(input() or default_ticket_num)
         return f'{ticket_num}{ticket_type.value}'
+    
+    def check_security_code(self, html: bytes) -> bool:
+        errors = self.error_feedback.parse(html)
+        if len(errors) == 0:
+            return False
+        return True
 
 
 def _parse_seat_prefer_value(page: BeautifulSoup) -> str:
@@ -150,8 +160,15 @@ def _parse_search_by(page: BeautifulSoup) -> str:
     return tag.attrs['value']
 
 
-def _input_security_code(img_resp: bytes) -> str:
+def _input_security_code(img_resp: bytes, OCR: bool = False) -> str:
     print('輸入驗證碼：')
     image = Image.open(io.BytesIO(img_resp))
-    image.show()
-    return input()
+    
+    if OCR:
+        image = preprocess(image)
+        text = predict(image)
+        print(text)
+        return text
+    else:
+        image.show()
+        return input()
