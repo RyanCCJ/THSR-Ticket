@@ -19,6 +19,7 @@ from thsr_ticket.configs.common import (
     AVAILABLE_TIME_TABLE,
     DAYS_BEFORE_BOOKING_AVAILABLE,
     MAX_TICKET_NUM,
+    MAX_TRIES,
 )
 
 
@@ -28,15 +29,16 @@ class FirstPageFlow:
         self.record = record
         self.config = config
         self.OCR = OCR
-
-    def run(self) -> Tuple[Response, BookingModel]:
-        # First page. Booking options
+        self.error_feedback = ErrorFeedback()
+        self.book_model = None
+        self.retries = 1
+    
+    def _prepare_form(self) -> None:
         print('請稍等...')
         book_page = self.client.request_booking_page().content
         img_resp = self.client.request_security_code_img(book_page).content
         page = BeautifulSoup(book_page, features='html.parser')
-
-        book_model = BookingModel(
+        self.book_model = BookingModel(
             start_station=self.select_station('啟程'),
             dest_station=self.select_station('到達', default_value=StationMapping.Zuouing.value),
             outbound_date=self.select_date('出發'),
@@ -47,10 +49,25 @@ class FirstPageFlow:
             search_by=_parse_search_by(page),
             security_code=_input_security_code(img_resp, self.OCR),
         )
-        json_params = book_model.json(by_alias=True)
+
+    def run(self) -> Tuple[Response, BookingModel]:
+        # First page. Booking options
+        self._prepare_form()
+
+        json_params = self.book_model.json(by_alias=True)
         dict_params = json.loads(json_params)
-        resp = self.client.submit_booking_form(dict_params)
-        return resp, book_model
+        self.resp = self.client.submit_booking_form(dict_params)
+
+        while not self.valid_security_code(self.resp.content):
+            if self.retries == MAX_TRIES:
+                print(f'驗證碼輸入錯誤達上限{MAX_TRIES}次')
+                break
+            print('驗證碼輸入錯誤，重新嘗試...')
+            self.OCR = False
+            self.retry_submission()
+            self.retries += 1
+
+        return self.resp, self.book_model
 
     def select_station(self, travel_type: str, default_value: int = StationMapping.Taipei.value) -> int:
         if (
@@ -135,11 +152,17 @@ class FirstPageFlow:
         ticket_num = int(input() or default_ticket_num)
         return f'{ticket_num}{ticket_type.value}'
     
-    def check_security_code(self, html: bytes) -> bool:
+    def valid_security_code(self, html: bytes) -> bool:
         errors = self.error_feedback.parse(html)
         if len(errors) == 0:
-            return False
-        return True
+            return True
+        return False
+    
+    def retry_submission(self):
+        self._prepare_form()
+        json_params = self.book_model.json(by_alias=True)
+        dict_params = json.loads(json_params)
+        self.resp = self.client.submit_booking_form(dict_params)
 
 
 def _parse_seat_prefer_value(page: BeautifulSoup) -> str:
@@ -161,14 +184,13 @@ def _parse_search_by(page: BeautifulSoup) -> str:
 
 
 def _input_security_code(img_resp: bytes, OCR: bool = False) -> str:
-    print('輸入驗證碼：')
     image = Image.open(io.BytesIO(img_resp))
-    
     if OCR:
         image = preprocess(image)
         text = predict(image)
-        print(text)
+        print(f'自動輸入驗證碼：{text}')
         return text
     else:
+        print('輸入驗證碼：')
         image.show()
         return input()

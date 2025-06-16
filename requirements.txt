@@ -12,3 +12,4 @@ matplotlib
 scikit-learn
 tensorflow
 opencv-python
+easyocr
