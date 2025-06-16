@@ -14,8 +14,8 @@ class ConfirmTicketFlow:
         self.client = client
         self.train_resp = train_resp
         self.record = record
-        self.personal_id = None
-        self.member_radio = None
+        self.personal_id = ''
+        self.member_radio = 0
 
     def run(self) -> Tuple[Response]:
         page = BeautifulSoup(self.train_resp.content, features='html.parser')
@@ -51,7 +51,10 @@ class ConfirmTicketFlow:
         passenger_ids = page.find(
             'input',
             attrs={
-                'name': 'TicketPassengerInfoInputPanel:passengerDataView:0:passengerDataView2:passengerDataIdNumber'
+                'name': lambda x: x in [
+                    'TicketMemberSystemInputPanel:TakerMemberSystemDataView:memberSystemRadioGroup:memberShipNumber',  # general
+                    'TicketPassengerInfoInputPanel:passengerDataView:0:passengerDataView2:passengerDataIdNumber'  # discount
+                    ]
             },
         )
         if passenger_ids is None:
@@ -70,20 +73,25 @@ class ConfirmTicketFlow:
             },
         )
         if candidates is None:
-            return ''
+            return 0
         if self.record and (member_radio := self.record.member_radio):
-            self.member_radio = member_radio
-            return self.member_radio
+            radio_table = {1: 0, 2: 2, 3: 5}
+            if member_radio in radio_table.keys():
+                self.member_radio = member_radio
+                base_num = int(candidates[0].attrs['value'].replace('radio',''))
+                return f'radio{base_num + radio_table[member_radio]}'
+            else:
+                print('會員選項須為 1 (非會員)、2 (TGo 會員)、3 (企業會員)，請重新選擇。')
+        
         print('選擇高鐵會員資訊：')
         print('1. 非高鐵會員 TGo／企業會員')
         print('2. 高鐵會員 TGo 帳號')
         print('3. 企業會員統編（暫不支援）')
-        member_idx = int(input(f'輸入選擇（預設：{default_value}）：') or default_value)
-        self.member_radio = candidates[member_idx-1].attrs['value']
-        return self.member_radio
+        self.member_radio = int(input(f'輸入選擇（預設：{default_value}）：') or default_value)
+        return candidates[self.member_radio-1].attrs['value']
     
     def set_member_id(self) -> str:
-        if self.member_radio != 'radio56':
+        if self.member_radio != 2:
             return ''
         if self.record and (member_id := self.record.member_id):
             return member_id

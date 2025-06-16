@@ -4,7 +4,7 @@ from thsr_ticket.model.db import Record
 from thsr_ticket.model.web.booking_form.station_mapping import StationMapping
 
 
-def history_info(hists: Iterable[Record], select: bool = True) -> int:
+def history_info(hists: Iterable[Record], select: int = 0) -> int:
     for idx, r in enumerate(hists, 1):
         print("第{}筆紀錄".format(idx))
         if r.passenger_id != '':
@@ -26,7 +26,8 @@ def history_info(hists: Iterable[Record], select: bool = True) -> int:
         print("  班次: " + r.train)
         print("  大人票數: " + r.adult_num[:-1])
 
-    if select:
+    if select == 0:
         sel = input("請選擇紀錄或是 Enter 跳過: ")
         return int(sel)-1 if sel != "" else None
-    return None
+    print(f"自動載入第{select}筆紀錄")
+    return select - 1

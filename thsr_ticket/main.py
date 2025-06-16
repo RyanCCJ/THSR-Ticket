@@ -14,19 +14,25 @@ def parse_arguments():
         help="Path to the configuration file"
     )
     parser.add_argument(
-        "--OCR", "-R",
-        action='store_true', 
+        "--record", "-R",
+        type=int,
+        help="Index of the record to use for booking",
+        default=0,
+    )
+    parser.add_argument(
+        "--OCR", "-O",
+        action='store_true',
         help="Use OCR model to predict captcha"
     )
     return parser.parse_args()
 
-def main(config_path=None, OCR=False):
+def main(config_path=None, record_idx=None, OCR=False):
     if config_path:
         print(f"Using configuration file: {config_path}")
     else:
         print("No configuration file provided. Using default settings.")
     
-    flow = BookingFlow(db_path=config_path, OCR=OCR)
+    flow = BookingFlow(db_path=config_path, record_idx=record_idx, OCR=OCR)
     flow.run()
 
 
@@ -36,4 +42,4 @@ if __name__ == "__main__":
     #train = Train().from_json(resp[0])
 
     args = parse_arguments()
-    main(args.config, args.OCR)
+    main(args.config, args.record, args.OCR)

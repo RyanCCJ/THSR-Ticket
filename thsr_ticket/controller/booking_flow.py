@@ -13,10 +13,11 @@ from thsr_ticket.remote.http_request import HTTPRequest
 
 
 class BookingFlow:
-    def __init__(self, db_path: str = None, OCR: bool = False) -> None:
+    def __init__(self, db_path: str = None, record_idx: int = 0, OCR: bool = False) -> None:
         self.client = HTTPRequest()
         self.db = ParamDB(db_path)
         self.record = Record()
+        self.record_idx = record_idx
         self.config = True if db_path else False
         self.OCR = OCR
 
@@ -24,7 +25,7 @@ class BookingFlow:
         self.show_error_msg = ShowErrorMsg()
 
     def run(self) -> Response:
-        self.show_history()
+        self.show_history(self.record_idx)
 
         # First page. Booking options
         book_resp, book_model = FirstPageFlow(self.client, self.record, self.config, self.OCR).run()
@@ -50,11 +51,11 @@ class BookingFlow:
         self.db.save(book_model, train_model, ticket_model)
         return ticket_resp
 
-    def show_history(self) -> None:
+    def show_history(self, record_idx: int = 0) -> None:
         hist = self.db.get_history()
         if not hist:
             return
-        h_idx = history_info(hist)
+        h_idx = history_info(hist, select=record_idx)
         if h_idx is not None:
             self.record = hist[h_idx]
 
