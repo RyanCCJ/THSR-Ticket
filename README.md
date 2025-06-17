@@ -6,7 +6,7 @@
 
 **(2025/05/12 update)** 另有 Rust 版本提供執行檔，可以參考 [thsr-ticket-rs](https://github.com/BreezeWhite/thsr-ticket-rs)
 
-**(2025/06 update @Ryan Chung)** 新增自動填寫表單、自動辨識驗證碼、自動預約訂票排程等功能，詳見下方更新項目
+**(2025/06 update [@Ryan Chung](https://github.com/RyanCCJ))** 新增自動填寫表單、自動辨識驗證碼、自動預約訂票排程等功能，詳見下方更新項目
 
 ## 執行
 
@@ -61,10 +61,11 @@ python thsr_ticket/main.py
 - [x] 輸入身分證字號
 - [x] 輸入手機號碼
 - [x] 保留此次輸入紀錄，下次可快速選擇此次紀錄
-- [x] 新增支援 ToGo 會員選項【新增】
+- [x] 早鳥票預訂【新增】
+- [x] TGo 會員購票【新增】
 - [x] 自動填入表單資料（讀取設定檔）【新增】
-- [x] 支援自動辨識 reCAPTCHA 驗證碼（使用 EasyOCR）【新增】
-- [x] 新增自動訂票排程功能（仿 crontab 功能）【新增】
+- [x] 自動辨識 reCAPTCHA 驗證碼（使用 EasyOCR）【新增】
+- [x] 自動排程訂票【新增】
 
 #### 🛠️ 未提供功能
 
